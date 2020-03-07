@@ -1,0 +1,60 @@
+Per vedere se è possibile utilizzare la GPU per la computazione della rete neurale fare affidamento a questo link alla voce "CUDA-Enabled GeForce and TITAN Products" 
+ATTENZIONE: Per usufruire della GPU è necessario che la GPU che si va ad utilizzare abbia una potenza di calcolo di almeno 3.5 Tf; si consiglia inoltre di utilizzare
+schede video con almeno 4GB di memoria RAM.
+
+https://developer.nvidia.com/cuda-gpus
+
+INSTALLAZIONI
+
+- Ubuntu 18.04:
+	sudo apt-get install timidity timidity-interfaces-extra
+
+- Python:
+
+	sudo apt update
+
+	sudo apt-get install python3
+
+	sudo apt install python3-pip
+
+- CUDA:
+	wget https://developer.download.nvidia.com/compute/cuda/repos/ubuntu1804/x86_64/cuda-repo-ubuntu1804_10.1.243-1_amd64.deb
+	sudo dpkg -i cuda-repo-ubuntu1804_10.1.243-1_amd64.deb
+	sudo apt-key adv --fetch-keys https://developer.download.nvidia.com/compute/cuda/repos/ubuntu1804/x86_64/7fa2af80.pub
+	sudo apt-get update
+	wget http://developer.download.nvidia.com/compute/machine-learning/repos/ubuntu1804/x86_64/nvidia-machine-learning-repo-ubuntu1804_1.0.0-1_amd64.deb
+	sudo apt install ./nvidia-machine-learning-repo-ubuntu1804_1.0.0-1_amd64.deb
+	sudo apt-get update
+
+	sudo apt-get install --no-install-recommends nvidia-driver-430
+
+	sudo apt-get install --no-install-recommends \
+    	cuda-10-1 \
+    	libcudnn7=7.6.4.38-1+cuda10.1  \
+    	libcudnn7-dev=7.6.4.38-1+cuda10.1
+
+- Librerie Python:
+
+	pip3 install Pillow
+	pip3 install numpy
+	pip3 install os
+	pip3 install matplotlib
+	pip3 install pytorch
+	pip3 install scipy
+	pip3 install pygame
+	pip3 install pyaudio
+	pip3 install shutils
+	pip3 install torchvision
+	pip3 install time
+	pip3 install music21
+	pip3 install imageio
+
+per riprodurre la canzone scrivere su terminale:
+
+timidity <nome_canzone>
+
+References: https://github.com/mathigatti/midi2img
+
+IMPORTANTE: cambiare i path delle directory all'interno degli script di python!
+
+Convertire i file musicali in immagini e inserire tali immaginia all'interno della cartella "TrainingImages"
