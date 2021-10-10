@@ -1,3 +1,5 @@
+#Copyright 2021 © Dott. Daniel Rossi
+
 from mnist import MNIST
 import matplotlib.pyplot as plt
 import numpy as np
