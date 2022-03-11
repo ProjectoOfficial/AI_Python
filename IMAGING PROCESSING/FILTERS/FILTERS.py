@@ -41,9 +41,16 @@ def otsu_treshold(image: torch.tensor, device: torch.device):
         m1 = torch.sum(hist[:i]* dat[:i]).to(device)/w1
         m2 = torch.sum(hist[i:]* dat[i:]).to(device)/w2
         var = w1*w2*((m1-m2)**2)
-        if var > maxvar:
+        if var < maxvar:
             maxvar = var
             tresh = i
+
+    if tresh > 256:
+        return 255
+    
+    if tresh <=0:
+        return 0
+
     return tresh - 1
 
 
