@@ -54,13 +54,27 @@ def otsu_treshold(image: torch.tensor, device: torch.device):
     return tresh - 1
 
 
-def tresh_filter(image:torch.tensor, treshold: torch.uint8, device: torch.device):
-    print("Using treshold: {}".format(treshold))
+def median_treshold(image: torch.tensor, device: torch.device):
+    return torch.median(torch.median(image).to(device)).to(device).to(torch.uint8)
+
+
+def average_treshold(image: torch.tensor, device: torch.device):
+    image = image.to(torch.float32)
+    return torch.mean(torch.mean(image).to(device)).to(device).to(torch.uint8)
+
+def minmax_treshold(image: torch.tensor, device: torch.device):
+    min = torch.min(torch.min(image).to(device)).to(device)
+    max = torch.max(torch.max(image).to(device)).to(device)
+    return (torch.round((max - min) / 2).to(device)).to(torch.uint8)
+ 
+def tresh_filter(image:torch.tensor, treshold: torch.uint8, device: torch.device, label: str):
+    print("{}: {}".format(label, treshold))
     return ((image > treshold).to(device) * 255).type(torch.uint8)
 
-def im_show(image: torch.tensor):
+def im_show(image: torch.tensor, label: str):
     image = image.detach().cpu()
     plt.imshow(image, cmap="gray")
+    plt.title(label)
     plt.show()
 
 if __name__ == "__main__":
@@ -75,20 +89,43 @@ if __name__ == "__main__":
     im = torch.from_numpy(im).type(torch.uint8)
    
     im = im.to(device)
+    
+    im_show(im, "Original image")
 
     # linear stretch
-    filtered = linear_stretch(im, 0.8, 5, device)
-    im_show(filtered)
+    filter_name = "Linear stretch"
+    filtered = linear_stretch(im, 1.2, 25, device)
+    im_show(filtered, filter_name)
 
     # casual treshold filter
+    filter_name = "Casual treshold"
     treshold = 70
-    filtered = tresh_filter(im, treshold, device)
-    im_show(filtered)
+    filtered = tresh_filter(im, treshold, device, filter_name)
+    im_show(filtered, filter_name)
+
+    # Average Filter
+    filter_name = "Average treshold"
+    treshold = average_treshold(im, device)
+    filtered = tresh_filter(im, treshold, device, filter_name)
+    im_show(filtered, filter_name)
+
+    # Median Filter
+    filter_name = "Median treshold"
+    treshold = median_treshold(im, device)
+    filtered = tresh_filter(im, treshold, device, filter_name)
+    im_show(filtered, filter_name)
+    
+    # MinMax Filter
+    filter_name = "MinMax treshold"
+    treshold = minmax_treshold(im, device)
+    filtered = tresh_filter(im, treshold, device, filter_name)
+    im_show(filtered, filter_name)
 
     # OTSU treshold filter
+    filter_name = "OTSU treshold"
     treshold = otsu_treshold(im, device)
-    filtered = tresh_filter(im, treshold, device)
-    im_show(filtered)
+    filtered = tresh_filter(im, treshold, device, filter_name)
+    im_show(filtered, filter_name)
 
 
 
