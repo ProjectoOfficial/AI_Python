@@ -5,7 +5,8 @@ import matplotlib.pyplot as plt
 import torchvision
 from torch.nn.functional import conv2d
 import cv2
-from scipy import ndimage
+from io import BytesIO
+
 
 PATH = r"C:\Users\daniel\Desktop\Filtri\gatto.jpg"
 
@@ -120,6 +121,39 @@ def live_filtering(filter, params: tuple):
     cam.release()
     cv2.destroyAllWindows()
 
+def image_stitching():
+    im_a = cv2.imread("gallery_0.jpg")
+    im_a = np.swapaxes(np.swapaxes(im_a, 0, 2), 1, 2)
+    im_a = im_a[::-1, :, :]  # from BGR to RGB
+
+    im_b = cv2.imread("gallery_1.jpg")
+    im_b = np.swapaxes(np.swapaxes(im_b, 0, 2), 1, 2)
+    im_b = im_b[::-1, :, :]  # from BGR to RGB
+
+    points_0 = np.float32([[33, 193], [95, 316], [238, 181], [210, 310]])
+    points_1 = np.float32([[50, 137], [58, 339], [191, 132], [199, 335]])
+
+    points_0 = np.float32([[193, 33], [316, 95], [181, 238], [310, 210]])
+    points_1 = np.float32([[137, 50], [339, 58], [132, 191], [335, 199]])
+
+    Tmat = cv2.getPerspectiveTransform(points_1, points_0)
+
+    warp_dst = cv2.warpPerspective(np.swapaxes(np.swapaxes(im_b, 0, 2), 1, 0), Tmat, (int(im_b.shape[2]*0.8), int(im_b.shape[1]*1.8)))
+
+    warp_dst = np.swapaxes(np.swapaxes(warp_dst, 0, 2), 1, 2)
+    H = max(warp_dst.shape[2], im_a.shape[2])
+    W = max(warp_dst.shape[1], im_a.shape[1])
+
+    r = np.zeros((3, W, H),dtype=np.uint8)
+    print(im_a.shape)
+    print(warp_dst.shape)
+    print(r.shape)
+    r[:, :im_a.shape[1], :] = im_a 
+    r[:, im_a.shape[1]: warp_dst.shape[1], :warp_dst.shape[2]] = warp_dst[:, im_a.shape[1]: , :]
+
+    plt.imshow(np.swapaxes(np.swapaxes(r, 0, 2), 1, 0))
+    plt.show()
+
 
 if __name__ == "__main__":
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -129,12 +163,12 @@ if __name__ == "__main__":
 
     # run_prev_filters()
 
-    # live_filtering(linear_stretch, (0.8, 10, ))   # LINEAR TRESHOLD LIVE
-    # live_filtering(tresh_filter, (30, ))          # CASUAL TRESHOLD LIVE
-    # live_filtering(tresh_filter, (device, ))      # OTSU LIVE
-    live_filtering(sobel, (torch.device("cpu"), ))               # SOBEL LIVE
+    # live_filtering(linear_stretch, (0.8, 10, ))                   # LINEAR TRESHOLD LIVE
+    # live_filtering(tresh_filter, (30, ))                          # CASUAL TRESHOLD LIVE
+    # live_filtering(tresh_filter, (device, ))                      # OTSU LIVE
+    # live_filtering(sobel, (torch.device("cpu"), ))                # SOBEL LIVE
 
-    
+    image_stitching()
     
 
 
