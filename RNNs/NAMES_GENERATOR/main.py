@@ -96,10 +96,9 @@ class RNN(nn.Module):
     def __init__(self, in_features: int, hidden_dim: int, num_classes: int):
         super(RNN, self).__init__()
 
-        self.lstm = nn.LSTM(input_size=in_features, hidden_size=hidden_dim, num_layers=1, batch_first=True, dropout=0.1)
+        self.lstm = nn.LSTM(input_size=in_features, hidden_size=hidden_dim, num_layers=1, batch_first=True, dropout=0.2)
         self.flatten = nn.Flatten()
-        self.mlp_1 = nn.Linear(hidden_dim, 64)
-        self.mlp_2 = nn.Linear(64, num_classes)
+        self.mlp_1 = nn.Linear(hidden_dim, num_classes)
 
         self.relu = nn.ReLU()
         self.softmax = nn.LogSoftmax(dim=1)
@@ -109,8 +108,7 @@ class RNN(nn.Module):
 
         x = torch.transpose(hn, 0, 1)
         x = self.flatten(x)
-        x = self.relu(self.mlp_1(x))
-        x = self.softmax(self.mlp_2(x))
+        x = self.softmax(self.mlp_1(x))
         return x
 
 
@@ -123,7 +121,10 @@ def sample(category, start_letter='A'):
         output_name = start_letter
 
         for i in range(max_length):
-            output = rnn((input[0].unsqueeze(0) + category_tensor.unsqueeze(-1)).to(device))
+            batch_category = category_tensor.expand(input.shape[0], category_tensor.shape[1])
+            input_data = torch.cat((batch_category.unsqueeze(1), input), 2)
+            # output = rnn((input[0].unsqueeze(0) + category_tensor.unsqueeze(-1)).to(device))+
+            output = rnn(input_data.to(device))
             topv, topi = output.topk(1)
             topi = topi[0][0]
             if topi == n_letters - 1:
@@ -162,15 +163,15 @@ if __name__ == "__main__":
     print('# categories:', n_categories, all_categories)
     print(unicodeToAscii("O'Néàl"))
 
-    learning_rate = 0.0001
+    learning_rate = 0.005
 
     hidden_size = 128
 
     assert torch.cuda.is_available(), "Notebook is not configured properly!"
     device = 'cuda:0'
-    rnn = RNN(n_letters, hidden_size, n_letters).to(device)
-    criterion = nn.NLLLoss()
-    optimizer = torch.optim.Adam(rnn.parameters(), lr=learning_rate)
+    rnn = RNN(n_letters + 18, hidden_size, n_letters).to(device)
+    criterion = nn.CrossEntropyLoss()
+    optimizer = torch.optim.Adam(rnn.parameters(), lr=learning_rate, amsgrad=True)
 
     if not os.path.exists(PATH + r"\RNN.pth"):
         n_iters = 1000000
@@ -185,11 +186,13 @@ if __name__ == "__main__":
             category_tensor, input_line_tensor, target_line_tensor = randomTrainingExample()
             hidden = torch.zeros(1, hidden_size)
 
-            category_tensor = category_tensor.expand(input_line_tensor.shape[0], category_tensor.shape[1])
-
             # training
             rnn.zero_grad()
-            out = rnn((category_tensor.unsqueeze(-1) + input_line_tensor).to(device))
+
+            batch_category = category_tensor.expand(input_line_tensor.shape[0], category_tensor.shape[1])
+            input_data = torch.cat((batch_category.unsqueeze(1), input_line_tensor),2)
+
+            out = rnn(input_data.to(device))
             loss = criterion(out, target_line_tensor.to(device))
             loss.backward()
             optimizer.step()
@@ -202,6 +205,10 @@ if __name__ == "__main__":
             if iter % plot_every == 0:
                 all_losses.append(total_loss.to(torch.device("cpu")).detach().numpy() / plot_every)
                 total_loss = 0
+                fig, ax = plt.subplots(nrows=1, ncols=1)  # create figure & 1 axis
+                ax.plot(all_losses)
+                fig.savefig('losses.png')  # save the figure to file
+                plt.close(fig)
 
         plt.figure()
         plt.plot(all_losses)
