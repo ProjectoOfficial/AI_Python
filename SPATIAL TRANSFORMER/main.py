@@ -1,3 +1,5 @@
+# code inspired by: https://pytorch.org/tutorials/intermediate/spatial_transformer_tutorial.html
+
 from __future__ import print_function
 import torch
 import torch.nn as nn
@@ -12,6 +14,7 @@ plt.ion()   # interactive mode
 
 from spatial_transformer import Net
 from utils import *
+import os
 
 from six.moves import urllib
 
@@ -28,25 +31,30 @@ if __name__ == '__main__':
                     transform=transforms.Compose([
                         transforms.ToTensor(),
                         transforms.Normalize((0.1307,), (0.3081,))
-                    ])), batch_size=64, shuffle=True, num_workers=4)
+                    ])), batch_size=64, shuffle=True, num_workers=8)
     # Test dataset
     test_loader = torch.utils.data.DataLoader(
         datasets.MNIST(root='.', train=False, transform=transforms.Compose([
             transforms.ToTensor(),
             transforms.Normalize((0.1307,), (0.3081,))
-        ])), batch_size=64, shuffle=True, num_workers=4)
+        ])), batch_size=64, shuffle=True, num_workers=8)
 
-
-    model = Net().to(device)
-    epochs = 20
-    optimizer = optim.SGD(model.parameters(), lr=0.01)
-
-    for epoch in range(1, epochs + 1):
-        train(epoch, model, optimizer, device, train_loader)
+    if os.path.isfile("spatial_transformer.pt"):
+        model = Net().to(device)
+        model.load_state_dict(torch.load("spatial_transformer.pt"))
         test(model, device, test_loader)
+    else:
+        epochs = 20
+        model = Net().to(device)
+        optimizer = optim.SGD(model.parameters(), lr=0.01)
+
+        for epoch in range(1, epochs + 1):
+            train(epoch, model, optimizer, device, train_loader)
+            test(model, device, test_loader)
+        torch.save(model.state_dict(), "spatial_transformer.pt")
 
     # Visualize the STN transformation on some input batch
-    visualize_stn()
+    visualize_stn(model, test_loader, device)
 
     plt.ioff()
     plt.show()
