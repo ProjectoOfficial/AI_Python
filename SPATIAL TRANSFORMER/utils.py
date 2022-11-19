@@ -4,10 +4,14 @@ import numpy as np
 from torch.nn import functional as F
 
 from matplotlib import pyplot as plt
+import time 
 
-def train(epoch, model, optimizer, device, train_loader):
+def train(epoch, model, optimizer, device, train_loader, plotname, x, y):    
     model.train()
+    plt.ioff()
+
     for batch_idx, (data, target) in enumerate(train_loader):
+        start = time.process_time()
         data, target = data.to(device), target.to(device)
 
         optimizer.zero_grad()
@@ -15,14 +19,26 @@ def train(epoch, model, optimizer, device, train_loader):
         loss = F.nll_loss(output, target)
         loss.backward()
         optimizer.step()
-        if batch_idx % 500 == 0:
-            print('Train Epoch: {} [{}/{} ({:.0f}%)]\tLoss: {:.6f}'.format(
+        stop = time.process_time()
+
+        x.append((epoch * len(train_loader)) + batch_idx)
+        y.append(loss.item())
+
+        if batch_idx % 100 == 0:
+            print('Train Epoch: {} [{}/{} ({:.0f}%)]\tLoss: {:.6f}\tBatch time: {:.6f}s'.format(
                 epoch, batch_idx * len(data), len(train_loader.dataset),
-                100. * batch_idx / len(train_loader), loss.item()))
+                100. * batch_idx / len(train_loader), loss.item(), stop - start ))
+    
+    fig, ax = plt.subplots( nrows=1, ncols=1 )  # create figure & 1 axis
+    ax.plot(x, y)
+    fig.savefig('{}.png'.format(plotname)) 
+    plt.close(fig)
+
+    return x, y
+
 #
 # A simple test procedure to measure the STN performances on MNIST.
 #
-
 
 def test(model, device, test_loader):
     with torch.no_grad():

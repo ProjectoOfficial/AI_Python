@@ -1,2 +1,5 @@
 MNIST
 __pycache__
+spatial_transformer_*.pt
+train*
+test*
