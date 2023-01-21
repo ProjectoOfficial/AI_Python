@@ -14,9 +14,9 @@ import torchvision.models as models
 import copy
 import datetime
 
-from ARTNN import Content_Loss
-from ARTNN import Normalization
-from ARTNN import Style_Loss
+import Content_Loss
+import Normalization
+import Style_Loss
 
 #la rete neurale che andremo ad implementare sarà una VGG network, ovvero una tipologia di CNN
 
@@ -72,16 +72,18 @@ class ArtNN():
         else:
             cv2.imshow("", image)
 
-    def save_image(self,path, tensor, title=None):
+    def save_image(self, path, tensor, title=None):
         image = tensor.cpu().clone()
         image = image.squeeze(0)
         image = self.unloader(image)
         image = cv2.cvtColor(np.array(image), cv2.COLOR_RGB2BGR)
 
         if title is not None:
-            cv2.imwrite(path+title+".jpg", image)
+            print(r"{}/{}.jpg".format(path, title), image)
+            cv2.imwrite(r"{}/{}.jpg".format(path, title), image)
         else:
-            cv2.imwrite(path+str(datetime.datetime.now())+".jpg", image)
+            print(r"{}/{}.jpg".format(path, str(datetime.datetime.now().strftime("%m_%d_%Y__%H_%M_%S"))))
+            cv2.imwrite(r"{}/{}.jpg".format(path, str(datetime.datetime.now().strftime("%m_%d_%Y__%H_%M_%S"))), image)
 
     def __get_style_model_and_losses(self, cnn, normalization_mean, normalization_std,
                                    style_img, content_img,

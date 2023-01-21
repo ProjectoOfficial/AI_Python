@@ -1,10 +1,11 @@
+import torch
 import tkinter as tk
 from PIL import ImageTk, Image
 import os
 from tkinter import filedialog
 from tkinter import messagebox
 from functools import partial
-from ARTNN import Art_nn
+import Art_nn
 
 class Application(tk.Frame):
     def __init__(self, master=None):
@@ -26,7 +27,7 @@ class Application(tk.Frame):
         self.selected_image_label["text"] = pathfile
 
     def select_image(self):
-        currdir = os.getcwd()
+        currdir = os.path.dirname(os.path.realpath(__file__))
         self.user_im_dir = filedialog.askopenfile(parent=self.select_path_frame, initialdir=currdir,
                                              title="select your image").name
 
@@ -45,14 +46,18 @@ class Application(tk.Frame):
         except AssertionError:
             messagebox.showerror("Error!", "you must select an artist and a personal picture")
             return
+
+        device = "cuda" if torch.cuda.is_available() else "cpu"
+
         art = Art_nn.ArtNN()
+        print(art)
         art.load_images(self.artist_im_dir, self.user_im_dir)
         self.output_image = art.run()
 
         answer = messagebox.askyesno("save the image","do you want to save the output image?")
 
         if answer is True:
-            currdir = os.getcwd()
+            currdir = os.path.dirname(os.path.realpath(__file__))
             path = filedialog.askdirectory(parent=self.select_path_frame, initialdir=currdir,
                                              title="select output folder")
             print(path)
@@ -117,9 +122,9 @@ class Application(tk.Frame):
         self.im_label.pack(side="left", fill="both", expand="yes")
 
     def __load_images(self, dim):
-        for _, _, files in os.walk(os.getcwd()+"/Artists"):
+        for _, _, files in os.walk(r"{}/Artists".format(os.path.dirname(os.path.realpath(__file__)))):
             for fname in files:
-                img = Image.open(os.getcwd()+"/Artists/"+fname)
+                img = Image.open(r"{}/Artists/{}".format(os.path.dirname(os.path.realpath(__file__)), fname))
                 img = img.resize((dim, dim), Image.ANTIALIAS)
                 self.images.append([ImageTk.PhotoImage(img), fname])
 
@@ -127,7 +132,7 @@ class Application(tk.Frame):
             image_frame = tk.Frame(self.master)
             image_label = tk.Label(image_frame, image=image)
 
-            button = tk.Button(image_frame, text=fname[:-4], command=partial(self.select_artist,os.getcwd()+"/Artists/"+fname))
+            button = tk.Button(image_frame, text=fname[:-4], command=partial(self.select_artist, r"{}/Artists/{}".format(os.path.dirname(os.path.realpath(__file__)), fname)))
 
             image_label.pack(side="top",fill="y", expand="no")
             button.pack(side="top", fill="y", expand="false")

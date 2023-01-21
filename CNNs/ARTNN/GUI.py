@@ -1,5 +1,5 @@
+import Application
 import tkinter as tk
-from ARTNN import Application
 
 class Gui():
     def __init__(self):

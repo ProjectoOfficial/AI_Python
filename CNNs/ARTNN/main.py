@@ -1,4 +1,4 @@
-from ARTNN import GUI
+import GUI
 
 
 if __name__== "__main__":
