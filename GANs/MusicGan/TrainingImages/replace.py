@@ -1,5 +1,8 @@
 import os
 
-for path,dire,filename in os.walk('/home/daniel/Scrivania/Gan/TrainingImages'):
-    for filename in filename:
-        os.replace(filename,filename.replace('.mp3_Piano_0',''))
+datapath = os.path.join(os.path.dirname(os.path.abspath(__file__)), "0")
+for path, dire, filenames in os.walk(datapath):
+    for filename in filenames:
+        file = os.path.join(os.path.dirname(os.path.abspath(__file__)), "0", filename)
+        print(file.replace('.mp3',''))
+        os.rename(file, file.replace('.mp3', ''))

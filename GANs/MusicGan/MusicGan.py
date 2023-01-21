@@ -11,17 +11,17 @@ import os
 import shutil
 from time import time
 
-mb_size = 1
+BATCH_SIZE = 1
 
 trainTransform = transforms.Compose([
     transforms.ToTensor()])
 
-data_path = '/home/daniel/Scrivania/Gan/TrainingImages/'
-
+data_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "TrainingImages")
+print(data_path)
 
 trainData = torchvision.datasets.ImageFolder(root=data_path, transform=trainTransform)
 
-trainLoader = torch.utils.data.DataLoader(trainData, shuffle=True, batch_size=mb_size, num_workers=12)
+trainLoader = torch.utils.data.DataLoader(trainData, shuffle=True, batch_size=BATCH_SIZE, num_workers=0)
 
 dataIter = iter(trainLoader)
 
@@ -41,8 +41,9 @@ def imsave(imgs,epoch):
    # plt.imshow(np.transpose(npimgs, (1, 2, 0)), cmap='Greys_r')
     plt.xticks([])
     plt.yticks([])
-    filepath = 'output/image_epoch_{}.png'.format(epoch)
-    plt.imsave(filepath,np.transpose(npimgs, (1, 2, 0)))
+    
+    filepath = os.path.join(os.path.dirname(__file__), 'outputs', 'image_epoch_{}.png'.format(epoch))
+    plt.imsave(filepath, np.transpose(npimgs, (1, 2, 0)))
 
 
 Z_dim = 100
@@ -87,10 +88,8 @@ class Dis(nn.Module):
 
 D = Dis().to(device)
 
-lr = 1e-3
-
-g_opt = opt.Adam(G.parameters(), lr=lr)
-d_opt = opt.Adam(D.parameters(), lr=lr)
+g_opt = opt.Adam(G.parameters(), lr=1e-4)
+d_opt = opt.Adam(D.parameters(), lr=1e-6)
 
 for epoch in range(6000):
     start_time=time()

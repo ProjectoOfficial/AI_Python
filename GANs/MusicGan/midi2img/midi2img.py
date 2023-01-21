@@ -1,8 +1,10 @@
 from music21 import converter, instrument, note, chord
-import json
-import sys
+import os
+from sys import platform
 import numpy as np
 from imageio import imwrite
+from pathlib import Path
+import argparse
 
 def extractNote(element):
     return int(element.pitch.ps)
@@ -36,7 +38,7 @@ def get_notes(notes_to_parse):
 
     return {"start":start, "pitch":notes, "dur":durations}
 
-def midi2image(midi_path):
+def midi2image(midi_path, input_reps):
     mid = converter.parse(midi_path)
 
     instruments = instrument.partitionByInstrument(mid)
@@ -69,7 +71,7 @@ def midi2image(midi_path):
         index = 0
         prev_index = 0
         repetitions = 0
-        while repetitions < int(sys.argv[2]):
+        while repetitions < input_reps:
             if prev_index >= len(values["pitch"]):
                 break
 
@@ -92,11 +94,41 @@ def midi2image(midi_path):
                 else:
                     prev_index = i
                     break
+            
+            par = os.path.dirname(Path(__file__).parent)
+            fname = ""
+            if platform == "linux" or platform == "linux2":
+                # linux
+                fname = str(midi_path).split("/")[-1].replace(".mid",f"_{instrument_name}_{index}.png")
+            elif platform == "darwin":
+                # OS X
+                fname = str(midi_path).split("/")[-1].replace(".mid",f"_{instrument_name}_{index}.png")
+            elif platform == "win32":
+                # Windows...
+                fname = str(midi_path).split("\\")[-1].replace(".mid",f"_{instrument_name}_{index}.png")
 
-            imwrite(midi_path.split("/")[-1].replace(".mid",f"_{instrument_name}_{index}.png"),matrix)
+            save_path = os.path.join(par, "TrainingImages", "0", fname)
+            print("Saved at: {}".format(save_path))
+            imwrite(save_path, matrix)
             index += 1
             repetitions+=1
 
-import sys
-midi_path = sys.argv[1]
-midi2image(midi_path)
+if __name__ == "__main__": 
+    parent = os.path.dirname(Path(__file__).parent)
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--path", type=str, default=Path(os.path.join(parent, "MidiTrain", "jazz_1.mp3.mid")))
+    parser.add_argument("--repetitions", type=int, default=3)
+    parser.add_argument("-d", '--isdir', action='store_true', dest='isdir')
+    parser.set_defaults(isdir=True)
+    opt = parser.parse_args()
+
+    if not opt.isdir:
+        print("Just one file selected")
+        midi2image(opt.path, opt.repetitions)
+    else:
+        print("directory selected")
+        for root, dirs, files in os.walk(opt.path):
+            for file in files:
+                if file.endswith(".mid"):
+                    pt = os.path.join(opt.path, file)
+                    midi2image(pt, opt.repetitions)

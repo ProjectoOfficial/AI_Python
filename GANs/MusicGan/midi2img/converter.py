@@ -1,21 +1,23 @@
 from PIL import Image
 import os
-from numpy import array
+import numpy as np
 import shutil
+from pathlib import Path
 
 def rgb2gray(rgb):
     return np.dot(rgb[...,:3], [0.2989, 0.5870, 0.1140])
 
 
-pt = '/home/daniel/Scrivania/Gan/output'
-outPath = '/home/daniel/Scrivania/Gan/ConvertedOutputs'
+parent = os.path.dirname(Path(__file__).parent)
+print(parent)
+outPath = os.path.join(parent, "ConvertedOutputs")
 
-if 'ConvertedOutputs' in os.listdir('/home/daniel/Scrivania/Gan/'):
+if 'ConvertedOutputs' in os.listdir(parent):
     shutil.rmtree(outPath) 
 print("Creating ConvertedOutputs directory...\n")
 os.makedirs(outPath)
 
-for path, dire, fname in os.walk(pt):
+for path, dire, fname in os.walk(parent):
     for f in fname:
       
         # creating a image1 object  
