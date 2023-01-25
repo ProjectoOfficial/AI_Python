@@ -55,65 +55,88 @@ class TubeSet(Dataset):
     def __len__(self):
         return len(self.df)  
 
+def train(opt):
+    device = "cpu"
+    if "cuda" in opt.device:
+        device = "cuda" if torch.cuda.is_available() else "cpu"
 
-EPOCHS = 100
-BATCH_SIZE = 8
-RESUME = True
-NORMALIZE = True
-device = "cuda" if torch.cuda.is_available() else "cpu"
+    trainset = TubeSet(curdir, normalize=opt.normalize)
+    trainloader = DataLoader(trainset, batch_size=opt.batch_size, shuffle=True, num_workers=0, pin_memory=True)
+    it = iter(trainset)
+    img, row = next(it)
+    plt.imshow(img.permute(1, 2, 0))
+    plt.show()
 
-trainset = TubeSet(curdir, normalize=NORMALIZE)
-trainloader = DataLoader(trainset, batch_size=BATCH_SIZE, shuffle=True, num_workers=0, pin_memory=True)
-it = iter(trainset)
-img, row = next(it)
-plt.imshow(img.permute(1, 2, 0))
-plt.show()
+    model = resnet50(weights=ResNet50_Weights.IMAGENET1K_V1)
+    model.fc = nn.Linear(model.fc.in_features, 1)
+    if opt.resume or not os.path.exists(os.path.join(curdir, "tubenet.pt")):
+        if opt.resume and os.path.exists(os.path.join(curdir, "tubenet.pt")):
+            model.load_state_dict(torch.load(os.path.join(curdir, "tubenet.pt")))
+        
+        model = model.to(device)
+        criterion = nn.MSELoss()
+        optimizer = optim.Adam(model.parameters(), lr=0.001, weight_decay=0.0001)
 
+        pbar = tqdm(range(opt.epochs), desc="[TRAINING] loss: NaN, pred: Nan, target: Nan")
 
-model = None
-model = resnet50(weights=ResNet50_Weights.IMAGENET1K_V1)
-model.fc = nn.Linear(model.fc.in_features, 1)
-if RESUME or not os.path.exists(os.path.join(curdir, "tubenet.pt")):
-    if RESUME and os.path.exists(os.path.join(curdir, "tubenet.pt")):
-        model.load_state_dict(torch.load(os.path.join(curdir, "tubenet.pt")))
-    
-    model = model.to(device)
-    criterion = nn.MSELoss()
-    opt = optim.Adam(model.parameters(), lr=0.001, weight_decay=0.0001)
-
-    pbar = tqdm(range(EPOCHS), desc="[TRAINING] loss: NaN, pred: Nan, target: Nan")
-
-    for e in pbar:
-        model.train(True)
-        for img, target in trainloader:
-            img = img.to(device)
-            target = target.to(device)
-            
-            opt.zero_grad()
-            pred = model(img)
-            loss = criterion(pred, target)
-            loss.backward()
-            opt.step()
+        for e in pbar:
+            model.train(True)
+            for img, target in trainloader:
+                img = img.to(device)
+                target = target.to(device)
                 
-        pbar.set_description("[TRAINING] epoch: {}, loss: {:.5f}, pred: {:.5f}, target: {:.5f}".format(e, loss.item(), pred[0].item(), target[0].item()))
-    torch.save(model.state_dict(), os.path.join(curdir, "tubenet.pt"))
-else:
-    model.load_state_dict(torch.load(os.path.join(curdir, "tubenet.pt")))
-    model = model.to(device)
+                optimizer.zero_grad()
+                pred = model(img)
+                loss = criterion(pred, target)
+                loss.backward()
+                optimizer.step()
+                    
+            pbar.set_description("[TRAINING] epoch: {}, loss: {:.5f}, pred: {:.5f}, target: {:.5f}".format(e, loss.item(), pred[0].item(), target[0].item()))
+        torch.save(model.state_dict(), os.path.join(curdir, "tubenet.pt"))
 
-#EVAL
-count = 0
-original, target = next(it)
-original, target = next(it)
-original, target = next(it)
-img = original.to(device)
-target = target.to(device)
+def eval(opt):
+    testset = TubeSet(curdir, normalize=opt.normalize) # i still do not have a test set (i am creating the dataset C: )
+    it = iter(testset)
 
-pred = model(torch.unsqueeze(img, 0))
+    original, target = next(it)
+    original, target = next(it)
+    original, target = next(it)
+    img = original.to(opt.device)
+    target = target.to(opt.device)
 
-pred_views = int((pred[0].item() * trainset.std) + trainset.mean)
-target_views = int((target[0].item() * trainset.std) + trainset.mean)
+    model = resnet50(weights=ResNet50_Weights.IMAGENET1K_V1)
+    model.fc = nn.Linear(model.fc.in_features, 1)
+    if os.path.exists(os.path.join(curdir, "tubenet.pt")):
+        model.load_state_dict(torch.load(os.path.join(curdir, "tubenet.pt")))
+    else:
+        print("[TUBE NET] no trained model found")
+        sys.exit(-1)
 
-plt.imshow(original.permute(1, 2, 0))
-plt.title("PREDICTED VIEWS: {} - GT: {}".format(pred_views, target_views))
-plt.show()
+    model = model.to(opt.device)
+    model.eval()
+    with torch.no_grad():
+        pred = model(torch.unsqueeze(img, 0))
+
+        pred_views = int((pred[0].item() * testset.std) + testset.mean)
+        target_views = int((target[0].item() * testset.std) + testset.mean)
+
+        plt.imshow(original.permute(1, 2, 0))
+        plt.title("PREDICTED VIEWS: {} - GT: {}".format(pred_views, target_views))
+        plt.show()
+
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser()
+    parser.add_argument("-b", "--batch-size", type=int, default=1, help="batch size of resnet")
+    parser.add_argument("-d", "--device", type=str, default="cpu", help="if you want to use cpu or gpu (insert 'cuda' in the second case")
+    parser.add_argument("-e", "--epochs", type=int, default=300, help="number of training epochs")
+    parser.add_argument("-i", "--infer",  action="store_true", help="true if you want to infer on test set")
+    parser.add_argument("-n", "--normalize", action="store_true", help="true if you want to normalize the data")
+    parser.add_argument("-r", "--resume", action="store_true", help="true if you want to resume training from previously saved weights")
+    parser.add_argument("-t", "--train",  action="store_true", help="true if you want to train")
+    
+    opt = parser.parse_args()
+
+    if opt.train:
+        train(opt)
+    elif opt.infer:
+        eval(opt)
